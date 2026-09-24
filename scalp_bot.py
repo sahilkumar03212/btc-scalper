@@ -47,18 +47,14 @@ def send_telegram(message):
 
 # ─── Exchange Setup ──────────────────────────────────────────────
 def get_exchange():
-    return ccxt.binance({
+    exchange = ccxt.binance({
         "apiKey": TESTNET_API_KEY,
         "secret": TESTNET_API_SECRET,
         "enableRateLimit": True,
         "options": {"defaultType": "spot"},
-        "urls": {
-            "api": {
-                "public": "https://testnet.binance.vision/api",
-                "private": "https://testnet.binance.vision/api",
-            }
-        },
     })
+    exchange.set_sandbox_mode(True)
+    return exchange
 
 
 def get_current_price(exchange):
