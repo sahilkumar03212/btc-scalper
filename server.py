@@ -6,7 +6,8 @@ import sys
 import threading
 import traceback
 from datetime import datetime, timezone
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_file
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import scalp_bot
@@ -50,7 +51,17 @@ def home():
         "bot": "BTC Scalper (1m)",
         "started_at": bot_status["started_at"],
         "last_error": bot_status["last_error"],
+        "download_logs": "/download-logs"
     })
+
+@app.route('/download-logs')
+def download_logs():
+    """Allows the user to download the CSV trade history."""
+    log_path = Path(__file__).parent / "logs" / "trade_history.csv"
+    if log_path.exists():
+        return send_file(log_path, as_attachment=True)
+    else:
+        return jsonify({"error": "No trades have been recorded yet."}), 404
 
 
 if __name__ == '__main__':

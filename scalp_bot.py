@@ -113,7 +113,7 @@ class ScalpPosition:
         self.take_profit = take_profit
         self.bars_held = 0
 
-    def close(self, exit_price):
+    def close(self, exit_price, exit_reason=""):
         pnl_pct = (exit_price - self.entry_price) / self.entry_price * 100
         pnl_usd = pnl_pct / 100 * self.size_usd
         self.daily_pnl += pnl_usd
@@ -130,7 +130,25 @@ class ScalpPosition:
             "pnl_pct": round(pnl_pct, 4),
             "pnl_usd": round(pnl_usd, 4),
             "bars_held": self.bars_held,
+            "reason": exit_reason
         }
+        
+        # Log to CSV
+        log_dir = Path(__file__).parent / "logs"
+        log_dir.mkdir(exist_ok=True)
+        csv_file = log_dir / "trade_history.csv"
+        
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        is_new_file = not csv_file.exists()
+        
+        try:
+            with open(csv_file, "a") as f:
+                if is_new_file:
+                    f.write("Timestamp,Side,Entry,Exit,PnL_Pct,PnL_USD,Bars_Held,Reason\n")
+                f.write(f"{timestamp},{self.side},{self.entry_price},{exit_price},{result['pnl_pct']},{result['pnl_usd']},{self.bars_held},{exit_reason}\n")
+        except Exception as e:
+            print(f"[WARN] Failed to write to CSV log: {e}")
+
         self.is_open = False
         self.entry_price = 0.0
         self.size_usd = 0.0
@@ -210,7 +228,7 @@ def main():
             if pos.is_open:
                 exit_reason = pos.check_exit(price)
                 if exit_reason:
-                    result = pos.close(price)
+                    result = pos.close(price, exit_reason)
                     emoji = "💰" if result["pnl_usd"] > 0 else "💸"
                     print(f"[{now_utc}] {emoji} CLOSED SCALP | {exit_reason} | PnL: {result['pnl_pct']:+.4f}% (${result['pnl_usd']:+.4f})")
 
